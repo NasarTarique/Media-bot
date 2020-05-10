@@ -1,9 +1,13 @@
 from newsapi import NewsApiClient
 from config import NEWS_API_KEY
-import datetime
 
-newsapi = NewsApiClient(api_key=NEWS_API_KEY)
 
-todays_date = datetime.datetime.utcnow().date()
-yesterdays_date  = todays_date - datetime.timedelta(days=1)
-top_headlines = newsapi.get_everything(sources='bbc-news', language='en', from_param=yesterdays_date, to=todays_date, sort_by='relevancy')
+def get_news():
+    newsapi = NewsApiClient(api_key=NEWS_API_KEY)
+    headlines = newsapi.get_top_headlines(country='in')
+    str ='News:\n'
+    for x in range(11):
+        str = str+headlines['articles'][x]['title']+'\n'+headlines['articles'][x]['description']+'\n'+headlines['articles'][x]['url']+'\n\n'
+    return str
+
+

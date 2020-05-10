@@ -4,6 +4,13 @@ from telegram.ext import Updater, Dispatcher, CommandHandler, CallbackContext
 from threading import Thread
 from queue import Queue
 from config import TOKEN
+import news
+
+app = Flask(__name__)
+update_queue = Queue()
+bot = Bot(TOKEN)
+updater = Updater(TOKEN, use_context=True)
+j = updater.job_queue
 
 
 def start(update: Update, context: CallbackContext):
@@ -31,21 +38,34 @@ def help(update: Update, context: CallbackContext):
     updates \n /stopNews :stop news updates '''
     context.bot.send_message(chat_id=update.message.chat.id, text=txt)
 
+
+def callback_news(context: CallbackContext):
+    txt = news.get_news()
+    context.bot.send_message(chat_id=context.job.context, text=txt)
+
+
 def start_news(update: Update, context: CallbackContext):
+    context.bot.send_message(chat_id=update.message.chat.id,
+                             text='You will now get top news headlines daily.\n Use /stopNews to stop getting updates')
+    j.run_repeating(callback_news, interval=300, first=0, context=update.message.chat.id)
 
 
+def stop_news(update: Update, context: CallbackContext):
+    if 'job' not in context.chat_data:
+        update.message.reply_text("you are not subscribed to daily news")
+
+    job = context.chat_data['job']
+    job.schedule_removal()
+    del context.chat_data['job']
+
+    update.message.reply_text("The daily update has been scheduled for removal")
 
 
-app = Flask(__name__)
-update_queue = Queue()
-bot = Bot(TOKEN)
-updater = Updater(TOKEN, use_context=True)
-j = updater.job_queue
 dispatcher = Dispatcher(bot, update_queue, job_queue=j, use_context=True)
-# timer_handler = CommandHandler('timer', callback_timer, pass_job_queue=True)
-# dispatcher.add_handler(timer_handler)
 dispatcher.add_handler(CommandHandler('help', help, pass_update_queue=True))
 dispatcher.add_handler(CommandHandler('start', start, pass_update_queue=True))
+dispatcher.add_handler(CommandHandler('startNews', start_news, pass_job_queue=True))
+dispatcher.add_handler(CommandHandler('stopNews', stop_news, pass_job_queue=True))
 j.set_dispatcher(dispatcher)
 thread = Thread(target=dispatcher.start, name='dispatcher')
 thread.start()
