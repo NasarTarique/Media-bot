@@ -11,7 +11,7 @@ update_queue = Queue()
 bot = Bot(TOKEN)
 updater = Updater(TOKEN, use_context=True)
 j = updater.job_queue
-listofjobs =[]
+listofjobs = []
 
 
 def start(update: Update, context: CallbackContext):
@@ -22,6 +22,7 @@ def start(update: Update, context: CallbackContext):
                               telegram saving you from endless scrolling and addiction of social media . you will get 
                               updates only once every 24 hours . 
                               type /help to know more ''')
+
 
 def help(update: Update, context: CallbackContext):
     txt = '''(Note : you will get posts from insta ,twitter and youtube only from the users you have selected not the 
@@ -41,34 +42,29 @@ def help(update: Update, context: CallbackContext):
 
 def callback_news(context: CallbackContext):
     txt = news.get_news()
-    listofjobs.append(context.job)
     context.bot.send_message(chat_id=context.job.context, text=txt)
 
 
 def start_news(update: Update, context: CallbackContext):
     context.bot.send_message(chat_id=update.message.chat.id,
                              text='You will now get top news headlines daily.\n Use /stopNews to stop getting updates')
-    j.run_repeating(callback_news, interval=300, first=0, context=update.message.chat.id)
+    job_dict = dict(chat_id=update.message.chat.id)
+    job_dict['news_job'] = j.run_repeating(callback_news, interval=300, first=0, context=update.message.chat.id)
+    listofjobs.append(job_dict)
 
 
 def stop_news(update: Update, context: CallbackContext):
-    job=listofjobs[0]
-    job.schedule_removal()
-    update.message.reply_text("The daily update has been scheduled for removal")
-    '''
-    print('job')
-    job.schedule_removal()
-    del context.chat_data['job']
-
-    update.message.reply_text("The daily update has been scheduled for removal")
-    '''
+    for job_dict in listofjobs:
+        if job_dict['chat_id'] == update.message.chat.id:
+            job_dict['news_job'].schedule_removal()
+            update.message.reply_text("The daily update has been scheduled for removal")
 
 
 dispatcher = Dispatcher(bot, update_queue, job_queue=j, use_context=True)
 dispatcher.add_handler(CommandHandler('help', help, pass_update_queue=True))
 dispatcher.add_handler(CommandHandler('start', start, pass_update_queue=True))
 dispatcher.add_handler(CommandHandler('startNews', start_news, pass_job_queue=True))
-dispatcher.add_handler(CommandHandler('stopNews', stop_news, pass_job_queue=True,pass_chat_data=True))
+dispatcher.add_handler(CommandHandler('stopNews', stop_news, pass_job_queue=True, pass_chat_data=True))
 j.set_dispatcher(dispatcher)
 thread = Thread(target=dispatcher.start, name='dispatcher')
 thread.start()
@@ -92,5 +88,3 @@ if __name__ == '__main__':
     app.run(debug=True)
     j.start()
     dispatcher.start()
-
-
