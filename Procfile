@@ -1,1 +1,1 @@
-web: python3 flskapp.py
+web: gunicorn flskapp:app
