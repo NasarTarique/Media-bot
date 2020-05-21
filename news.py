@@ -1,7 +1,9 @@
 import logging
+import os
 from newsapi import NewsApiClient
-from config import NEWS_API_KEY
 
+
+NEWS_API_KEY = os.environ.get('NEWS_API_KEY')
 
 logging.basicConfig(filename="news.log", level=logging.DEBUG)
 logger = logging.getLogger()
